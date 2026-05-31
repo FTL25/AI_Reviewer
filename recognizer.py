@@ -121,7 +121,3 @@ def recognition(input_path, output_path):
 
 id2class = {0: "Header", 1: "Header", 2: "Affiliation", 3: "Affiliation", 4: "Text", 5: "Text", 6: "Author", 7: "Author",
             8: "Annotation", 9: "Annotation", 10: "KeyWords", 11: "KeyWords", 12: "Reference", 13: "Reference", 14: "Other"}
-# pages, w = recognition(r"C:\Users\Asus\Desktop\Superfri\jsfi210407.pdf", r"C:\Users\Asus\Desktop\Итоги\jsfi210407.pdf")
-# with open(r"C:\Users\Asus\Desktop\pages.json", "w", encoding="utf-8") as f:
-#     json.dump(pages, f, ensure_ascii=False, indent=4)
-
