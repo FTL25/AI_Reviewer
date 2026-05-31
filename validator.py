@@ -397,6 +397,3 @@ def validation(pages, width):
 function_words = ["of", "for", "an", "in", "the", "to", "at", "and", "by", "but", "if", "not", "a", "with", "on"]
 id2label = {0: "Header", 1: "Header", 2: "Affiliation", 3: "Affiliation", 4: "Text", 5: "Text", 6: "Author", 7: "Author",
             8: "Annotation", 9: "Annotation", 10: "KeyWords", 11: "KeyWords", 12: "Reference", 13: "Reference",  14: "Other"}
-# with open(r"C:\Users\Asus\Desktop\pages.json", "r", encoding="utf-8") as f:
-#     pages = json.load(f)
-# validation(pages, 1654)
