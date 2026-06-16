@@ -31,8 +31,6 @@ if __name__ == "__main__":
     output_path = r"C:\Users\Asus\Desktop\data2"
     iterator = 0
     for file in os.listdir(input_path):
-        # if not "jsfi210302" in file:
-        #     continue
         document = pdfplumber.open(os.path.join(input_image_path, file))
         with pdfplumber.open(os.path.join(input_path, file)) as pdf:
             IsReference = False
