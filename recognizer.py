@@ -20,7 +20,7 @@ def unnormalize_box(bbox, width, height):
 def recognition(input_path, output_path):
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe' # Путь к tesseract
     processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=True)
-    model = LayoutLMv3ForTokenClassification.from_pretrained("./NNModel")
+    model = LayoutLMv3ForTokenClassification.from_pretrained("./NNRewieverV2")
     poppler_path = r"C:\Program Files (x86)\poppler-25.12.0\Library\bin" # Путь к poppler
     images = convert_from_path(input_path, poppler_path=poppler_path, hide_annotations=True)
     output_images = []
@@ -116,7 +116,7 @@ def recognition(input_path, output_path):
         texts["boxes"] = true_boxes
         pages.append(texts)
     output_images[0].save(output_path, save_all=True, append_images=output_images[1:])
-    return pages, width
+    return pages, width, height
 
 
 id2class = {0: "Header", 1: "Header", 2: "Affiliation", 3: "Affiliation", 4: "Text", 5: "Text", 6: "Author", 7: "Author",
