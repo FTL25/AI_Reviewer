@@ -13,9 +13,9 @@ def get_length(token_num, page):
 def get_lines(token_num, page, length):
     lines = []
     str = page["tokens"][token_num]
-    prevY = page["boxes"][token_num][1]
+    prevY = (page["boxes"][token_num][1] + ((page["boxes"][token_num][3] - page["boxes"][token_num][1]) / 2))
     for i in range(token_num + 1, token_num + length):
-        currY = page["boxes"][i][1]
+        currY = (page["boxes"][i][1] + ((page["boxes"][i][3] - page["boxes"][i][1]) / 2))
         if abs(prevY - currY) > 10:
             lines.append(str)
             str = ""
@@ -106,6 +106,10 @@ def keywords_check(text, prev):
     mistakes = []
     if prev != "Annotation":
         mistakes.append("- список ключевых слов необходимо расположить сразу после аннотации")
+    if text.startswith("Keywords: "):
+        text = text.replace("Keywords: ", "")
+    else:
+        mistakes.append("- список ключевых слов должен начинаться с слова \"Keywords:\"")
     words = text.split(", ")
     if len(words) < 4 or len(words) > 10:
         mistakes.append("- в списке должно быть от 4 до 10 ключевых слов")
@@ -120,7 +124,7 @@ def keywords_check(text, prev):
     return mistakes
 
 
-def affiliation_check(text, lines):
+def affiliation_check(text):
     mistakes = []
     text = text.split(", ")
     if len(text) % 3 != 0:
@@ -130,29 +134,29 @@ def affiliation_check(text, lines):
     return mistakes
 
 
-def header_check(text):
+def header_check(text, page_num):
     mistakes = []
     if "Introduction" in text and text[0].isdigit():
-        mistakes.append("- введение не нумеруется")
+        mistakes.append(f"- введение не нумеруется ({page_num} стр.)")
     elif "Conclusion" in text and text[0].isdigit():
-        mistakes.append("- заключение не нумеруется")
-    elif "Acknowledgements" in text or "Acknowledgments" in text and text[0].isdigit():
-        mistakes.append("- благодарности не нумеруются")
+        mistakes.append(f"- заключение не нумеруется ({page_num} стр.)")
+    elif ("Acknowledgements" in text or "Acknowledgments" in text) and text[0].isdigit():
+        mistakes.append(f"- благодарности не нумеруются ({page_num} стр.)")
     elif "References" in text and text[0].isdigit():
-        mistakes.append("- заголовок списка литературы не нумеруется")
+        mistakes.append(f"- заголовок списка литературы не нумеруется ({page_num} стр.)")
     if "Introduction" not in text and "Acknowledgements" not in text and "Acknowledgments" not in text and "Conclusion" not in text \
             and "References" not in text:
         if not text[0].isdigit():
-            mistakes.append(f"- необходимо нумеровать заголовок {text}")
+            mistakes.append(f"- необходимо нумеровать заголовок {text} ({page_num} стр.)")
     for word in text.split(" ")[1:]:
         if word[0].islower() and word not in function_words:
-            mistakes.append(f"- в заголовке первая буква слова {word} должна быть заглавной")
+            mistakes.append(f"- в заголовке первая буква слова {word} должна быть заглавной ({page_num} стр.)")
     if text[-1] == ".":
-        mistakes.append("- в конце заголовков точка не ставится")
+        mistakes.append(f"- в конце заголовков точка не ставится ({page_num} стр.)")
     return mistakes
 
 
-def figure_check(lines, boxes, width):
+def figure_check(lines, boxes, width, page_num):
     mistakes = []
     j = 0
     prevY = boxes[j][1]
@@ -165,16 +169,16 @@ def figure_check(lines, boxes, width):
         b = boxes[j][2]
         median = ((a + ((b - a) / 2)) / width)
         if median < 0.485 or median > 0.515:
-            mistakes.append(f"- рисунок {lines[0].split(' ')[1][0]} должен иметь выравнивание по центру")
+            mistakes.append(f"- название рисунка {lines[0].split(' ')[1][0]} должно иметь выравнивание по центру ({page_num} стр.)")
             break
         prevY = currY
         j += 1
     if lines[-1][-1] == ".":
-        mistakes.append(f"- в конце названия рисунка {lines[0].split(' ')[1][0]} не должно быть точки")
+        mistakes.append(f"- в конце названия рисунка {lines[0].split(' ')[1][0]} не должно быть точки ({page_num} стр.)")
     return mistakes
 
 
-def table_check(lines, boxes, width):
+def table_check(lines, boxes, width, page_num):
     mistakes = []
     j = 0
     prevY = boxes[j][1]
@@ -187,21 +191,22 @@ def table_check(lines, boxes, width):
         b = boxes[j][2]
         median = ((a + ((b - a) / 2)) / width)
         if median < 0.485 or median > 0.515:
-            mistakes.append(f"- таблица {lines[0].split(' ')[1][0]} должна иметь выравнивание по центру")
+            mistakes.append(f"- название таблицы {lines[0].split(' ')[1][0]} должно иметь выравнивание по центру ({page_num} стр.)")
             break
         prevY = currY
         j += 1
     if lines[-1][-1] == ".":
-        mistakes.append(f"- в конце названия таблицы {lines[0].split(' ')[1][0]} не должно быть точки.")
+        mistakes.append(f"- в конце названия таблицы {lines[0].split(' ')[1][0]} не должно быть точки ({page_num} стр.)")
     return mistakes
 
 
-def references_check(text):
+def references_check(text, page_num):
     mistakes = []
     words = text.split(" ")
-    if "Figure" in text:
-        if words[words.index("Figure") - 1][-1] != ".":
-            mistakes.append(f"- ссылку на рисунок {re.sub(r'[^0-9]', '', words[words.index('Figure') + 1])} необходимо оформить в виде \"Fig. {re.sub(r'[^0-9]', '', words[words.index('Figure') + 1])}\"")
+    if "Figure " in text:
+        a = words.index("Figure")
+        if words.index("Figure") != 0 and words[words.index("Figure") - 1][-1] != ".":
+            mistakes.append(f"- ссылку на рисунок {re.sub(r'[^0-9]', '', words[words.index('Figure') + 1])} необходимо оформить в виде \"Fig. {re.sub(r'[^0-9]', '', words[words.index('Figure') + 1])}\" ({page_num} стр.)")
     if "Fig." in text:
         ind = 0
         for word in words:
@@ -209,10 +214,10 @@ def references_check(text):
                 break
             ind += 1
         if ind == 0 or words[ind - 1] == ".":
-            mistakes.append(f"- ссылку на рисунок {re.sub(r'[^0-9]', '', words[ind + 1])} в начале предложения необходимо оформить в виде \"Figure {re.sub(r'[^0-9]', '', words[ind + 1])}\"")
-    if "Table" in text:
-        if words[words.index("Table") - 1][-1] != ".":
-            mistakes.append(f"- ссылку на таблицу {re.sub(r'[^0-9]', '', words[words.index('Table') + 1])} необходимо оформить в виде \"Tab. {re.sub(r'[^0-9]', '', words[words.index('Table') + 1])}\"")
+            mistakes.append(f"- ссылку на рисунок {re.sub(r'[^0-9]', '', words[ind + 1])} в начале предложения необходимо оформить в виде \"Figure {re.sub(r'[^0-9]', '', words[ind + 1])}\" ({page_num} стр.)")
+    if "Table " in text:
+        if words.index("Table") != 0 and words[words.index("Table") - 1][-1] != ".":
+            mistakes.append(f"- ссылку на таблицу {re.sub(r'[^0-9]', '', words[words.index('Table') + 1])} необходимо оформить в виде \"Tab. {re.sub(r'[^0-9]', '', words[words.index('Table') + 1])}\" ({page_num} стр.)")
     if "Tab." in text:
         ind = 0
         for word in words:
@@ -224,7 +229,7 @@ def references_check(text):
     return mistakes
 
 
-def validation(pages, width):
+def validation(pages, width, height):
     mistakes = [[], [], [], [], [], [], [], []]
     page_num = 1
     references_links = []
@@ -240,13 +245,26 @@ def validation(pages, width):
         brackets = re.findall(r"\[[\d\s\-,]+\]", text_page)
         for bracket in brackets:
             bracket = bracket[1:-1]
-            if "-" in bracket:
+            if "-" in bracket and "," in bracket:
+                refs = bracket.split(", ")
+                for ref in refs:
+                    if "-" in ref:
+                        ref_range = ref.split("-")
+                        for x in range(int(ref_range[0]), int(ref_range[0]) + 1):
+                            references_links.append(x)
+                    else:
+                        references_links.append(int(ref))
+                for x in range(int(refs[0]), int(refs[1]) + 1):
+                    references_links.append(x)
+            elif "-" in bracket:
                 refs = bracket.split("-")
-                references_links.append(range(int(refs[0]), int(refs[1])))
+                for x in range(int(refs[0]), int(refs[1]) + 1):
+                    references_links.append(x)
             elif "," in bracket:
                 refs = bracket.split(", ")
                 for ref in refs:
-                    references_links.append(int(ref))
+                    if isinstance(ref, int):
+                        references_links.append(int(ref))
             else:
                 references_links.append(int(bracket))
         wrong_brackets = re.findall(r"(\[\d+\], )+\[\d+\]", text_page)
@@ -254,7 +272,6 @@ def validation(pages, width):
             mistakes[6] += [f"- перечисляемые перекрестные ссылки {brackets} следует отделять пробелами и заключить в одни квадратные скобки"]
 
         while token_num < len(page["tokens"]):
-            a = page["tokens"][token_num]
             length = 0
             if page_num == 1:
                 if page["classes"][token_num] == "Header":
@@ -273,19 +290,20 @@ def validation(pages, width):
                         token_num = page["tokens"][token_num:].index("Figure") + len(page["tokens"][:token_num])
                         length = get_length(token_num, page)
                         mistakes[6] += figure_check(get_lines(token_num, page, length),
-                                                    page["boxes"][token_num:token_num + length], width)
+                                                    page["boxes"][token_num:token_num + length], width, page_num)
                     elif "Table" in text:
                         token_num = page["tokens"][token_num:].index("Table") + len(page["tokens"][:token_num])
                         length = get_length(token_num, page)
                         mistakes[6] += table_check(get_lines(token_num, page, length),
-                                                   page["boxes"][token_num:token_num + length], width)
-                    elif page["boxes"][token_num][0] < width / 4:
-                        mistakes[5] += header_check(text)
+                                                   page["boxes"][token_num:token_num + length], width, page_num)
+                    elif page["boxes"][token_num][0] < width / 6 and \
+                            page["boxes"][token_num][1] > 70 or page["boxes"][token_num][3] < height - 50:
+                        mistakes[5] += header_check(text, page_num)
                     prev = "Header"
                 elif page["classes"][token_num] == "Text":
                     length = get_length(token_num, page)
                     if length > 2:
-                        mistakes[6] += references_check(get_text(token_num, page, length))
+                        mistakes[6] += references_check(get_text(token_num, page, length), page_num)
                     prev = "Text"
                 elif page["classes"][token_num] == "Author":
                     length = get_length(token_num, page)
@@ -329,8 +347,7 @@ def validation(pages, width):
                         if layout[4] == 0:
                             layout[4] = layout_order
                             layout_order += 1
-                        mistakes[4] = affiliation_check(get_text(token_num, page, length),
-                                                        len(get_lines(token_num, page, length)))
+                        mistakes[4] = affiliation_check(get_text(token_num, page, length))
                     prev = "Affiliation"
                 else:
                     length = get_length(token_num, page)
@@ -345,19 +362,19 @@ def validation(pages, width):
                         if "Table" in text:
                             length = text.split(" ").index("Table")
                         mistakes[6] += figure_check(get_lines(token_num, page, length),
-                                                    page["boxes"][token_num:token_num + length], width)
+                                                    page["boxes"][token_num:token_num + length], width, page_num)
                     elif "Table" in text:
                         token_num = page["tokens"][token_num:].index("Table") + len(page["tokens"][:token_num])
                         length = get_length(token_num, page)
                         mistakes[6] += table_check(get_lines(token_num, page, length),
-                                                   page["boxes"][token_num:token_num + length], width)
-                    elif page["boxes"][token_num][0] < width / 4:
-                        mistakes[5] += header_check(text)
+                                                   page["boxes"][token_num:token_num + length], width, page_num)
+                    elif page["boxes"][token_num][0] < width / 6:
+                        mistakes[5] += header_check(text, page_num)
                     prev = "Header"
                 elif page["classes"][token_num] == "Text":
                     length = get_length(token_num, page)
                     if length > 2:
-                        mistakes[6] += references_check(get_text(token_num, page, length))
+                        mistakes[6] += references_check(get_text(token_num, page, length), page_num)
                     prev = "Text"
                 elif page["classes"][token_num] == "Reference":
                     if layout[5] == 0:
@@ -389,11 +406,15 @@ def validation(pages, width):
             if layout[i] == 0:
                 mistakes[i] += ["- раздел не обнаружен"]
         mistakes[7] += ["- cтатья должна иметь следующую структуру: название, список авторов, аннотация, список ключевых слов, аффилиации авторов, список литературы"]
+    if len(mistakes[5]) == 0:
+        mistakes[5] += ["- ошибки не найдены"]
+    if len(mistakes[6]) == 0:
+        mistakes[6] += ["- ошибки не найдены"]
     for i in range(7):
         mistakes[i] = list(set(mistakes[i]))
     return mistakes
 
 
-function_words = ["of", "for", "an", "in", "the", "to", "at", "and", "by", "but", "if", "not", "a", "with", "on"]
+function_words = ["of", "for", "an", "in", "the", "to", "at", "and", "by", "but", "if", "not", "a", "with", "on", "from"]
 id2label = {0: "Header", 1: "Header", 2: "Affiliation", 3: "Affiliation", 4: "Text", 5: "Text", 6: "Author", 7: "Author",
             8: "Annotation", 9: "Annotation", 10: "KeyWords", 11: "KeyWords", 12: "Reference", 13: "Reference",  14: "Other"}
